@@ -40,3 +40,66 @@ emotions={'01':'neutral','02':'calm','03':'happy','04':'sad','05':'angry',
 print("Emotions in the data set are : " , emotions)
 
 
+#Observed Emotions
+observed_emotions=['angry', 'happy', 'neutral', 'sad']
+print("Emotions being observed are : " , observed_emotions)
+
+#Loading the data and extract features for each sound file
+def load_data(test_size=0.25):
+  x,y=[],[]
+  for file in glob.glob("/content/drive/MyDrive/DATASET/Dataset/RAVDESS_Dataset/Radvess_Dataset/Actor_*/*.wav"):
+    file_name=os.path.basename(file)
+    emotion=emotions[file_name.split("-")[2]]
+    if emotion not in observed_emotions:
+      continue
+    try:
+      feature=extract_feature(file, mfcc=True, chroma=True, mel=True)
+    except:
+      continue
+    x.append(feature)
+    y.append(emotion)
+  return train_test_split(np.array(x), y, test_size=test_size, random_state=9)
+
+#Split the dataset
+x_train,x_test,y_train,y_test=load_data(test_size=0.25)
+print((x_train.shape[0], x_test.shape[0]))
+
+#Get the number of features extracted
+print(f'Features extracted: {x_train.shape[1]}')
+
+#Initialise the Multi Layer Perceptron Classifier
+model=MLPClassifier(alpha=0.01, batch_size=256, epsilon=1e-08,
+hidden_layer_sizes=(300,), learning_rate='adaptive', max_iter=500)
+
+
+#Train the model
+model.fit(x_train,y_train)
+
+#Predict for the test set
+y_pred=model.predict(x_test)
+
+#Calculate the accuracy of model
+accuracy=accuracy_score(y_true=y_test, y_pred=y_pred)
+
+#Print the accuracy
+print("Accuracy: {:.2f}%".format(accuracy*100))
+
+#Confusion Matrix
+from sklearn.metrics import confusion_matrix
+matrix = confusion_matrix(y_test,y_pred)
+print(matrix)
+
+#serialization
+import joblib
+joblib.dump(model,'speech-emotion')
+
+#deserialization
+import joblib
+text_model=joblib.load('speech-emotion')
+
+#Installing Streamlit
+pip install streamlit --quiet
+
+#Running Streamlit 
+!streamlit run app.py &npx localtunnel --port 8501
+
